@@ -13,13 +13,17 @@
         <div class="container">
             <a class="navbar-brand" href="/">Trekking App</a>
             <div class="d-flex">
-                <a href="/login" class="btn btn-outline-light me-2">Login</a>
-                <a href="/register" class="btn btn-light">Register</a>
+                {% if 'user_id' in session %}
+                    <span class="navbar-text me-3 text-white">Hello, {{ session['name'] }}</span>
+                    <a href="/logout" class="btn btn-danger">Logout</a>
+                {% else %}
+                    <a href="/login" class="btn btn-outline-light me-2">Login</a>
+                    <a href="/register" class="btn btn-light">Register</a>
+                {% endif %}
             </div>
         </div>
     </nav>
 
-    <!-- Main Content Container -->
     <div class="container">
         
         {% block content %}

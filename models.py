@@ -24,7 +24,7 @@ class Trek(db.Model):
     available_slots = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='Open') # 'Open', 'Closed', 'Completed'
     
-    # Foreign Key linking to the User table (Trek Staff)
+    # Foreign Key linking to the User table
     assigned_staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     
     # Relationship

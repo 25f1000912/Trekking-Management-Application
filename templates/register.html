@@ -6,7 +6,37 @@
         <div class="card shadow-sm mt-5">
             <div class="card-body">
                 <h3 class="card-title text-center mb-4">Register</h3>
-                <p class="text-center text-muted">Registration form will go here</p>
+                
+                {% with messages = get_flashed_messages() %}
+                  {% if messages %}
+                    {% for message in messages %}
+                      <div class="alert alert-warning">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="/register">
+                    <div class="mb-3">
+                        <label>Full Name</label>
+                        <input type="text" name="full_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Password</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Register As:</label>
+                        <select name="role" class="form-select" required>
+                            <option value="User">Trekker (User)</option>
+                            <option value="Staff">Trek Staff</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Register</button>
+                </form>
             </div>
         </div>
     </div>
