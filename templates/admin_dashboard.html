@@ -1,6 +1,51 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
-<h2>Admin Dashboard</h2>
-<p>Welcome, Admin! Your stats and controls will go here.</p>
+<div class="container mt-4">
+    <h2 class="mb-4">Dashboard</h2>
+    
+    <!-- Bootstrap Grid Row for Cards -->
+    <div class="row">
+        
+        <!-- Total Treks Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted">Total Treks</h6>
+                    <h2 class="card-text fw-bold">{{ total_treks }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Users Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted">Total Users</h6>
+                    <h2 class="card-text fw-bold">{{ total_users }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Staff Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted">Total Staff</h6>
+                    <h2 class="card-text fw-bold">{{ total_staff }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Bookings Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="card-title text-muted">Total Bookings</h6>
+                    <h2 class="card-text fw-bold">{{ total_bookings }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
