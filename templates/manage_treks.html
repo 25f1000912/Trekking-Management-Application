@@ -9,15 +9,16 @@
 
     <div class="table-responsive">
         <table class="table table-bordered table-hover bg-white shadow-sm">
-            <thead class="table-light">
+            <thead class="table-dark">
                 <tr>
                     <th>ID</th>
                     <th>Trek Name</th>
                     <th>Location</th>
                     <th>Difficulty</th>
-                    <th>Duration (Days)</th> <!-- Added Header -->
+                    <th>Duration</th>
                     <th>Slots</th>
                     <th>Status</th>
+                    <th>Assigned Staff</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -31,6 +32,14 @@
                     <td>{{ trek.duration }}</td> <!-- Added Data -->
                     <td>{{ trek.available_slots }}</td>
                     <td>{{ trek.status }}</td>
+                    <td>
+                        {% if trek.staff %}
+                            {{ trek.staff.full_name }}
+                        {% else %}
+                            <span class="text-muted fst-italic">Unassigned</span>
+                        {% endif %}
+                    </td>
+
                     <td>
                         <a href="{{ url_for('edit_trek', id=trek.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                         <form action="{{ url_for('delete_trek', id=trek.id) }}" method="POST" class="d-inline">

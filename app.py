@@ -133,6 +133,12 @@ def add_trek():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
+
+        # Retrieve the staff_id from the form
+        staff_id = request.form.get('staff_id')
+
+        staff_id = int(staff_id) if staff_id else None
+
         # Extract data from the form
         new_trek = Trek(
             name=request.form.get('name'),
@@ -140,7 +146,8 @@ def add_trek():
             difficulty=request.form.get('difficulty'),
             duration=request.form.get('duration'),
             available_slots=request.form.get('slots'),
-            status=request.form.get('status')
+            status=request.form.get('status'),
+            staff_id=staff_id
         )
         
         # Save to database
@@ -149,8 +156,9 @@ def add_trek():
         
         flash('Trek added successfully!', 'success')
         return redirect(url_for('manage_treks'))
-        
-    return render_template('add_trek.html')
+    
+    approved_staff = User.query.filter_by(role='Staff', status='Approved').all()    
+    return render_template('add_trek.html', approved_staff=approved_staff)
 
 @app.route('/admin/treks/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -161,18 +169,23 @@ def edit_trek(id):
     trek = Trek.query.get_or_404(id)
     
     if request.method == 'POST':
+
         trek.name = request.form.get('name')
         trek.location = request.form.get('location')
         trek.difficulty = request.form.get('difficulty')
         trek.duration = request.form.get('duration')
         trek.available_slots = request.form.get('slots')
         trek.status = request.form.get('status')
+        staff_id = request.form.get('staff_id')
+        trek.staff_id = int(staff_id) if staff_id else None
         
         db.session.commit()
+
         flash('Trek updated successfully!', 'success')
         return redirect(url_for('manage_treks'))
-        
-    return render_template('edit_trek.html', trek=trek)
+
+    approved_staff = User.query.filter_by(role='Staff', status='Approved').all()
+    return render_template('edit_trek.html', trek=trek, approved_staff=approved_staff)
 
 @app.route('/admin/treks/delete/<int:id>', methods=['POST'])
 @login_required
@@ -186,6 +199,38 @@ def delete_trek(id):
     
     flash('Trek deleted successfully!', 'success')
     return redirect(url_for('manage_treks'))
+
+# --- Admin: Manage Staff ---
+
+@app.route('/manage_staff')
+@login_required
+def manage_staff():
+    if session.get('role') != 'Admin':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('login'))
+        
+    # Fetch all users who registered as Staff
+    staff_members = User.query.filter_by(role='Staff').all()
+    return render_template('manage_staff.html', staff_members=staff_members)
+
+@app.route('/update_staff_status/<int:id>/<string:action>')
+@login_required
+def update_staff_status(id, action):
+    if session.get('role') != 'Admin':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('login'))
+        
+    staff = User.query.get_or_404(id)
+    
+    if action == 'approve':
+        staff.status = 'Approved'
+        flash(f'Staff {staff.full_name} has been approved.', 'success')
+    elif action == 'reject':
+        staff.status = 'Rejected' # Or you can use db.session.delete(staff)
+        flash(f'Staff {staff.full_name} has been rejected.', 'danger')
+        
+    db.session.commit()
+    return redirect(url_for('manage_staff'))
 
 
 @app.route('/staff')
