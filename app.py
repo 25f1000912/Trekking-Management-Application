@@ -61,10 +61,23 @@ def login():
         user = User.query.filter_by(email=email).first()
         
         if user and check_password_hash(user.password, password):
-            
-            if user.status == 'Pending':
-                flash('Your staff account is pending admin approval.')
-                return redirect(url_for('login'))
+                    
+            # BLOCK to prevent blacklisted or pending staff from logging in
+            if user.role == 'Staff':
+                if user.status == 'Blacklisted':
+                    flash('Your account has been blacklisted. Please contact the admin.', 'danger')
+                    return redirect(url_for('login'))
+                elif user.status == 'Pending':
+                    flash('Your account is still pending approval.', 'warning')
+                    return redirect(url_for('login'))
+                elif user.status == 'Rejected':
+                    flash('Your application was rejected.', 'danger')
+                    return redirect(url_for('login'))
+
+            if user.role == 'User':
+                if user.status == 'Blacklisted':
+                    flash('Your account has been suspended. Please contact support.', 'danger')
+                    return redirect(url_for('login'))
                 
             session['user_id'] = user.id
             session['role'] = user.role
@@ -157,7 +170,7 @@ def add_trek():
         flash('Trek added successfully!', 'success')
         return redirect(url_for('manage_treks'))
     
-    approved_staff = User.query.filter_by(role='Staff', status='Approved').all()    
+    approved_staff = User.query.filter_by(role='Staff', status='Active').all()    
     return render_template('add_trek.html', approved_staff=approved_staff)
 
 @app.route('/admin/treks/edit/<int:id>', methods=['GET', 'POST'])
@@ -184,7 +197,7 @@ def edit_trek(id):
         flash('Trek updated successfully!', 'success')
         return redirect(url_for('manage_treks'))
 
-    approved_staff = User.query.filter_by(role='Staff', status='Approved').all()
+    approved_staff = User.query.filter_by(role='Staff', status='Active').all()
     return render_template('edit_trek.html', trek=trek, approved_staff=approved_staff)
 
 @app.route('/admin/treks/delete/<int:id>', methods=['POST'])
@@ -222,33 +235,137 @@ def update_staff_status(id, action):
         
     staff = User.query.get_or_404(id)
     
-    if action == 'approve':
-        staff.status = 'Approved'
-        flash(f'Staff {staff.full_name} has been approved.', 'success')
+    if action == 'approve' or action == 'whitelist':
+        staff.status = 'Active' 
+        flash(f'Staff {staff.full_name} is now Active.', 'success')
+    elif action == 'blacklist':
+        staff.status = 'Blacklisted'
+        flash(f'Staff {staff.full_name} has been blacklisted.', 'dark')
     elif action == 'reject':
-        staff.status = 'Rejected' # Or you can use db.session.delete(staff)
+        staff.status = 'Rejected' 
         flash(f'Staff {staff.full_name} has been rejected.', 'danger')
         
     db.session.commit()
     return redirect(url_for('manage_staff'))
 
+# --- Admin: Manage Users ---
+
+@app.route('/manage_users')
+@login_required
+def manage_users():
+    if session.get('role') != 'Admin':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('login'))
+        
+    # Fetch all registered Users
+    users = User.query.filter_by(role='User').all()
+    
+    # Calculate active bookings for each user
+    for user in users:
+        # Adjust 'Confirmed' or 'Pending' based on your exact Booking model statuses
+        active_count = Booking.query.filter(
+            Booking.user_id == user.id,
+            Booking.status.in_(['Confirmed', 'Pending', 'Active']) 
+        ).count()
+        user.active_bookings_count = active_count
+
+    return render_template('manage_users.html', users=users)
+
+@app.route('/update_user_status/<int:id>/<string:action>')
+@login_required
+def update_user_status(id, action):
+    if session.get('role') != 'Admin':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('login'))
+        
+    user = User.query.get_or_404(id)
+    
+    if action == 'whitelist':
+        user.status = 'Active' 
+        flash(f'User {user.full_name} is now Active.', 'success')
+    elif action == 'blacklist':
+        user.status = 'Blacklisted'
+        flash(f'User {user.full_name} has been blacklisted.', 'dark')
+        
+    db.session.commit()
+    return redirect(url_for('manage_users'))
+
 
 @app.route('/staff')
 @login_required
 def staff_dashboard():
-    # Strict check: Only Staff role can access
     if session.get('role') != 'Staff':
-        flash('Unauthorized access. Staff privileges required.')
+        flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
         
-    # Check if staff is approved by querying the database using session user_id
-    user = User.query.get(session['user_id'])
-    if user.status == 'Pending':
-        flash('Access denied. Your staff account is pending Admin approval.')
-        session.clear() # Log them out forcefully
+    assigned_treks = Trek.query.filter_by(staff_id=session.get('user_id')).all()
+    
+    total_assigned = len(assigned_treks)
+    open_treks = sum(1 for trek in assigned_treks if trek.status == 'Open')
+    
+    total_participants = 0
+    for trek in assigned_treks:
+        # Fetch actual booking objects instead of just .count()
+        participants = Booking.query.filter(
+            Booking.trek_id == trek.id, 
+            Booking.status.in_(['Confirmed', 'Pending', 'Active'])
+        ).all()
+        
+        trek.participants = participants # Store list of bookings in the trek object
+        trek.participant_count = len(participants)
+        total_participants += trek.participant_count
+
+    return render_template(
+        'staff_dashboard.html', 
+        treks=assigned_treks, 
+        total_assigned=total_assigned,
+        total_participants=total_participants,
+        open_treks=open_treks
+    )
+
+@app.route('/manage_assigned_trek/<int:id>', methods=['GET', 'POST'])
+@login_required
+def manage_assigned_trek(id):
+    if session.get('role') != 'Staff':
         return redirect(url_for('login'))
         
-    return render_template('staff_dashboard.html')
+    trek = Trek.query.get_or_404(id)
+    
+    # Security check: Ensure the staff member actually manages this trek
+    if trek.staff_id != session.get('user_id'):
+        flash('You do not have permission to manage this trek.', 'danger')
+        return redirect(url_for('staff_dashboard'))
+        
+    if request.method == 'POST':
+        trek.available_slots = int(request.form.get('available_slots'))
+        trek.status = request.form.get('status')
+        
+        db.session.commit()
+        flash(f'Trek "{trek.name}" updated successfully.', 'success')
+        return redirect(url_for('staff_dashboard'))
+        
+    return render_template('manage_assigned_trek.html', trek=trek)
+
+@app.route('/complete_trek/<int:id>', methods=['POST'])
+@login_required
+def complete_trek(id):
+    # Ensure only Staff can access
+    if session.get('role') != 'Staff':
+        return redirect(url_for('login'))
+        
+    trek = Trek.query.get_or_404(id)
+    
+    # Ensure the staff member manages this specific trek
+    if trek.staff_id != session.get('user_id'):
+        flash('You do not have permission to modify this trek.', 'danger')
+        return redirect(url_for('staff_dashboard'))
+        
+    # Update status to Completed
+    trek.status = 'Completed'
+    db.session.commit()
+    
+    flash(f'Trek "{trek.name}" has been marked as Completed. No new registrations are allowed.', 'success')
+    return redirect(url_for('staff_dashboard'))
 
 
 @app.route('/user')
@@ -260,6 +377,18 @@ def user_dashboard():
         return redirect(url_for('login'))
         
     return render_template('user_dashboard.html')
+
+@app.route('/book_trek/<int:trek_id>', methods=['GET', 'POST'])
+@login_required
+def book_trek(trek_id):
+    trek = Trek.query.get_or_404(trek_id)
+    
+    if request.method == 'POST':
+        # CHECK: Prevent booking if the trek is not Open
+        if trek.status != 'Open':
+            flash('Registration is closed. This trek has already been completed or is no longer accepting participants.', 'danger')
+            return redirect(url_for('user'))
+            
 
 if __name__ == '__main__':
     init_db(app)

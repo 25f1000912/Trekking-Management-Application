@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Users</h2>
+    <div class="card shadow-sm mt-3">
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Active Bookings</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.full_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <!-- Displays the dynamically calculated booking count -->
+                            <span class="badge bg-primary rounded-pill">{{ user.active_bookings_count }}</span>
+                        </td>
+                        <td>
+                            {% if user.status == 'Blacklisted' %}
+                                <span class="badge bg-dark">Blacklisted</span>
+                            {% else %}
+                                <!-- Defaults to Active if not blacklisted -->
+                                <span class="badge bg-success">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.status == 'Blacklisted' %}
+                                <a href="{{ url_for('update_user_status', id=user.id, action='whitelist') }}" class="btn btn-sm btn-outline-success">Whitelist</a>
+                            {% else %}
+                                <a href="{{ url_for('update_user_status', id=user.id, action='blacklist') }}" class="btn btn-sm btn-dark">Blacklist</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No users found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

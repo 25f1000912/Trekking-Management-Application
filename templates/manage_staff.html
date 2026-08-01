@@ -22,19 +22,26 @@
                         <td>{{ staff.full_name }}</td>
                         <td>{{ staff.email }}</td>
                         <td>
-                            <!-- Color code the status badges -->
-                            {% if staff.status == 'Approved' %}
-                                <span class="badge bg-success">Approved</span>
+                            <!-- Updated Status Badges -->
+                            {% if staff.status == 'Active' or staff.status == 'Approved' %}
+                                <span class="badge bg-success">Active</span>
                             {% elif staff.status == 'Pending' %}
                                 <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif staff.status == 'Blacklisted' %}
+                                <span class="badge bg-dark">Blacklisted</span>
                             {% else %}
                                 <span class="badge bg-danger">Rejected</span>
                             {% endif %}
                         </td>
                         <td>
+                            <!-- Updated Actions Logic -->
                             {% if staff.status == 'Pending' %}
                                 <a href="{{ url_for('update_staff_status', id=staff.id, action='approve') }}" class="btn btn-sm btn-success">Approve</a>
                                 <a href="{{ url_for('update_staff_status', id=staff.id, action='reject') }}" class="btn btn-sm btn-danger">Reject</a>
+                            {% elif staff.status == 'Active' or staff.status == 'Approved' %}
+                                <a href="{{ url_for('update_staff_status', id=staff.id, action='blacklist') }}" class="btn btn-sm btn-dark">Blacklist</a>
+                            {% elif staff.status == 'Blacklisted' %}
+                                <a href="{{ url_for('update_staff_status', id=staff.id, action='whitelist') }}" class="btn btn-sm btn-outline-success">Whitelist</a>
                             {% else %}
                                 <span class="text-muted">No actions available</span>
                             {% endif %}

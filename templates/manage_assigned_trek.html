@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0">Manage: {{ trek.name }}</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('manage_assigned_trek', id=trek.id) }}" method="POST">
+                        
+                        <!-- Read-only Trek Details -->
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Location</label>
+                            <input type="text" class="form-control" value="{{ trek.location }}" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Difficulty & Duration</label>
+                            <input type="text" class="form-control" value="{{ trek.difficulty }} | {{ trek.duration }} Days" disabled>
+                        </div>
+
+                        <hr class="my-4">
+                        <h6 class="mb-3">Update Current Status</h6>
+
+                        <!-- Editable Fields -->
+                        <div class="mb-3">
+                            <label for="available_slots" class="form-label fw-bold">Available Slots</label>
+                            <input type="number" class="form-control" id="available_slots" name="available_slots" value="{{ trek.available_slots }}" min="0" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="status" class="form-label fw-bold">Trek Status</label>
+                            <select class="form-select" id="status" name="status" required>
+                                <option value="Open" {% if trek.status == 'Open' %}selected{% endif %}>Open</option>
+                                <option value="Closed" {% if trek.status == 'Closed' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('staff_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-success px-4">Save Changes</button>
+                        </div>
+                    </form>
+                    <!-- Danger Zone: Mark as Completed -->
+                    <div class="mt-5 border border-danger rounded p-4 bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="text-danger fw-bold mb-1">End Trek</h5>
+                                <p class="text-muted mb-0">Marking this trek as completed will permanently close registrations and remove it from active listings.</p>
+                            </div>
+                            
+                            <!-- Separate form for the completion action -->
+                            <form action="{{ url_for('complete_trek', id=trek.id) }}" method="POST" onsubmit="return confirm('Are you sure? This action cannot be undone and will prevent any new bookings.');">
+                                <button type="submit" class="btn btn-danger fw-bold px-4">Mark as Completed</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}  
