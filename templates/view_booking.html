@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-sm col-md-6 mx-auto">
+        <div class="card-header bg-primary text-white py-3">
+            <h5 class="mb-0">Booking Details</h5>
+        </div>
+        <div class="card-body p-4">
+            <p><strong>Trek Name:</strong> {{ booking.trek.name }}</p>
+            <p><strong>Location:</strong> {{ booking.trek.location }}</p>
+            <p><strong>Booking Status:</strong> 
+                <span class="badge bg-success">{{ booking.status }}</span>
+            </p>
+            <p><strong>Booking Date:</strong> 
+                {{ booking.booking_date.strftime('%d %b %Y') if booking.booking_date else 'N/A' }}
+            </p>
+            
+            <div class="mt-4">
+                <a href="{{ url_for('user_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

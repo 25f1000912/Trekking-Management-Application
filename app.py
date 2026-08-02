@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from models import db, User, Trek, Booking
+from datetime import datetime
 from create_db import init_db
+from models import db, User, Trek, Booking
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite'
@@ -290,6 +291,18 @@ def update_user_status(id, action):
     db.session.commit()
     return redirect(url_for('manage_users'))
 
+@app.route('/admin/reports')
+@login_required
+def admin_reports():
+    if session.get('role') != 'Admin':
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('login'))
+        
+    # Query all bookings and order them by the most recent
+    all_bookings = Booking.query.order_by(Booking.booking_date.desc()).all()
+    
+    return render_template('admin_reports.html', bookings=all_bookings)
+
 
 @app.route('/staff')
 @login_required
@@ -349,45 +362,150 @@ def manage_assigned_trek(id):
 @app.route('/complete_trek/<int:id>', methods=['POST'])
 @login_required
 def complete_trek(id):
-    # Ensure only Staff can access
     if session.get('role') != 'Staff':
         return redirect(url_for('login'))
         
     trek = Trek.query.get_or_404(id)
     
-    # Ensure the staff member manages this specific trek
     if trek.staff_id != session.get('user_id'):
         flash('You do not have permission to modify this trek.', 'danger')
         return redirect(url_for('staff_dashboard'))
         
-    # Update status to Completed
+    # Update Trek Status
     trek.status = 'Completed'
+    
+    # Dynamically update all active bookings for this trek to 'Completed'
+    # Assumes your Booking model has a trek_id column
+    bookings_to_update = Booking.query.filter_by(trek_id=trek.id).all()
+    for booking in bookings_to_update:
+        if booking.status in ['Booked', 'Confirmed', 'Pending']:
+            booking.status = 'Completed'
+            
     db.session.commit()
     
-    flash(f'Trek "{trek.name}" has been marked as Completed. No new registrations are allowed.', 'success')
+    flash(f'Trek "{trek.name}" and its associated bookings have been marked as Completed.', 'success')
     return redirect(url_for('staff_dashboard'))
 
 
 @app.route('/user')
 @login_required
 def user_dashboard():
-    # Strict check: Only User role can access
+    # Ensure only registered Users can access
     if session.get('role') != 'User':
-        flash('Unauthorized access. User privileges required.')
+        flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
+
+    # 1. Handle Filtering for Available Treks
+    # Start with base query for Open treks
+    query = Trek.query.filter_by(status='Open')
+    
+    # Get filter parameters from the URL (HTML Form GET request)
+    selected_difficulty = request.args.get('difficulty')
+    selected_location = request.args.get('location')
+
+    if selected_difficulty and selected_difficulty != 'All':
+        query = query.filter_by(difficulty=selected_difficulty)
+    
+    if selected_location and selected_location != 'All':
+        query = query.filter_by(location=selected_location)
         
-    return render_template('user_dashboard.html')
+    available_treks = query.all()
+
+    # Get unique locations dynamically from the database to populate the dropdown
+    locations = db.session.query(Trek.location).distinct().all()
+    unique_locations = [loc[0] for loc in locations]
+
+    # 2. Retrieve User's Current Bookings
+    # Assumes your Booking model has a backref to Trek (e.g., booking.trek.name)
+    all_user_bookings = Booking.query.filter_by(user_id=session.get('user_id')).order_by(Booking.booking_date.desc()).all()
+    
+    # Split into Upcoming (Booked) and Past (Completed/Cancelled)
+    upcoming_bookings = [b for b in all_user_bookings if b.status in ['Booked', 'Confirmed', 'Pending']]
+    past_bookings = [b for b in all_user_bookings if b.status in ['Completed', 'Cancelled']]
+
+    return render_template(
+        'user_dashboard.html',
+        available_treks=available_treks,
+        upcoming_bookings=upcoming_bookings,
+        past_bookings=past_bookings,
+        unique_locations=unique_locations,
+        selected_difficulty=selected_difficulty,
+        selected_location=selected_location
+    )
 
 @app.route('/book_trek/<int:trek_id>', methods=['GET', 'POST'])
 @login_required
 def book_trek(trek_id):
+    # Ensure only registered Users can make a booking
+    if session.get('role') != 'User':
+        flash('Only registered users can book treks.', 'danger')
+        return redirect(url_for('login'))
+
     trek = Trek.query.get_or_404(trek_id)
+
+    # 1. Check if the trek status is Open
+    if trek.status != 'Open':
+        flash('Registration is closed for this trek.', 'danger')
+        return redirect(url_for('user_dashboard'))
+
+    # 2. Check if there are available slots
+    if trek.available_slots <= 0:
+        flash('Sorry, this trek is fully booked.', 'warning')
+        return redirect(url_for('user_dashboard'))
+
+    # 3. Check for duplicate bookings by this user
+    existing_booking = Booking.query.filter_by(
+        user_id=session.get('user_id'), 
+        trek_id=trek.id
+    ).first()
     
+    if existing_booking:
+        flash('You have already booked this trek.', 'info')
+        return redirect(url_for('user_dashboard'))
+
+    # Handle the actual booking execution
     if request.method == 'POST':
-        # CHECK: Prevent booking if the trek is not Open
-        if trek.status != 'Open':
-            flash('Registration is closed. This trek has already been completed or is no longer accepting participants.', 'danger')
-            return redirect(url_for('user'))
+        try:
+            # 4. Create a new Booking record
+            new_booking = Booking(
+                user_id=session.get('user_id'),
+                trek_id=trek.id,
+                booking_date=datetime.utcnow(),
+                status='Booked'
+            )
+            db.session.add(new_booking)
+
+            # 5. Decrease the trek's available slots by 1
+            trek.available_slots -= 1
+
+            # Commit the transaction safely
+            db.session.commit()
+            flash(f'Successfully booked {trek.name}!', 'success')
+            return redirect(url_for('user_dashboard'))
+            
+        except Exception as e:
+            # Rollback in case of database errors (e.g., race conditions)
+            db.session.rollback()
+            flash('An error occurred while processing your booking. Please try again.', 'danger')
+            return redirect(url_for('user_dashboard'))
+
+    # If GET request, show confirmation page
+    return render_template('confirm_booking.html', trek=trek)
+
+@app.route('/view_booking/<int:id>')
+@login_required
+def view_booking(id):
+    if session.get('role') != 'User':
+        return redirect(url_for('login'))
+        
+    booking = Booking.query.get_or_404(id)
+    
+    # Security: Ensure the logged-in user actually owns this booking
+    if booking.user_id != session.get('user_id'):
+        flash('Unauthorized access.', 'danger')
+        return redirect(url_for('user_dashboard'))
+        
+    return render_template('view_booking.html', booking=booking)
             
 
 if __name__ == '__main__':

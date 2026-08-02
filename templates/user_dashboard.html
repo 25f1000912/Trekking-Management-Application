@@ -1,6 +1,155 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 
 {% block content %}
-<h2>User Dashboard</h2>
-<p>Welcome, Trekker! Available treks will appear here.</p>
+<div class="container mt-4">
+    <!-- Welcome Header -->
+    <h2 class="mb-4">Welcome, {{ session.get('full_name', 'User') }}!</h2>
+
+    <!-- Available Treks Header & Filters -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h4 class="mb-0">Available Treks</h4>
+        
+        <!-- Filter Form (GET request) -->
+        <form method="GET" action="{{ url_for('user_dashboard') }}" class="d-flex gap-3">
+            <select name="difficulty" class="form-select shadow-sm w-auto" onchange="this.form.submit()">
+                <option value="All" {% if selected_difficulty == 'All' or not selected_difficulty %}selected{% endif %}>Difficulty: All</option>
+                <option value="Easy" {% if selected_difficulty == 'Easy' %}selected{% endif %}>Easy</option>
+                <option value="Moderate" {% if selected_difficulty == 'Moderate' %}selected{% endif %}>Moderate</option>
+                <option value="Hard" {% if selected_difficulty == 'Hard' %}selected{% endif %}>Hard</option>
+            </select>
+            
+            <select name="location" class="form-select shadow-sm w-auto" onchange="this.form.submit()">
+                <option value="All" {% if selected_location == 'All' or not selected_location %}selected{% endif %}>Location: All</option>
+                {% for loc in unique_locations %}
+                <option value="{{ loc }}" {% if selected_location == loc %}selected{% endif %}>{{ loc }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <!-- Available Treks Table -->
+    <div class="card shadow-sm mb-5">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4 py-3">Trek Name</th>
+                            <th>Location</th>
+                            <th>Difficulty</th>
+                            <th>Duration</th>
+                            <th>Available Slots</th>
+                            <th class="pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trek in available_treks %}
+                        <tr>
+                            <td class="ps-4 fw-medium">{{ trek.name }}</td>
+                            <td>{{ trek.location }}</td>
+                            <td>{{ trek.difficulty }}</td>
+                            <td>{{ trek.duration }} Days</td>
+                            <td>{{ trek.available_slots }}</td>
+                            <td class="pe-4">
+                                <a href="{{ url_for('book_trek', trek_id=trek.id) }}" class="btn btn-primary btn-sm px-3 fw-bold shadow-sm">Book Now</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No treks match your current filters.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Bookings Header -->
+    <h4 class="mb-3 mt-5">My Tracking History</h4>
+    
+    <!-- Tabs Nav -->
+    <ul class="nav nav-tabs mb-4" id="bookingTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold" id="upcoming-tab" data-bs-toggle="tab" data-bs-target="#upcoming" type="button" role="tab" aria-controls="upcoming" aria-selected="true">Upcoming Treks</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold" id="past-tab" data-bs-toggle="tab" data-bs-target="#past" type="button" role="tab" aria-controls="past" aria-selected="false">Past Treks</button>
+        </li>
+    </ul>
+
+    <!-- Tabs Content -->
+    <div class="tab-content" id="bookingTabsContent">
+        
+        <!-- UPCOMING TAB -->
+        <div class="tab-pane fade show active" id="upcoming" role="tabpanel" aria-labelledby="upcoming-tab">
+            <div class="card shadow-sm border-top-0 rounded-bottom">
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4 py-3">Trek Name</th>
+                                <th>Booking Date</th>
+                                <th>Status</th>
+                                <th class="pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in upcoming_bookings %}
+                            <tr>
+                                <td class="ps-4 fw-medium">{{ booking.trek.name }}</td>
+                                <td>{{ booking.booking_date.strftime('%d %b %Y') if booking.booking_date else 'N/A' }}</td>
+                                <td><span class="badge bg-primary">{{ booking.status }}</span></td>
+                                <td class="pe-4">
+                                    <a href="{{ url_for('view_booking', id=booking.id) }}" class="btn btn-outline-primary btn-sm px-3 fw-bold">View Details</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">No upcoming treks scheduled. Time to book an adventure!</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAST TAB -->
+        <div class="tab-pane fade" id="past" role="tabpanel" aria-labelledby="past-tab">
+            <div class="card shadow-sm border-top-0 rounded-bottom">
+                <div class="card-body p-0">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4 py-3">Trek Name</th>
+                                <th>Booking Date</th>
+                                <th>Status</th>
+                                <th class="pe-4">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in past_bookings %}
+                            <tr>
+                                <td class="ps-4 text-muted">{{ booking.trek.name }}</td>
+                                <td class="text-muted">{{ booking.booking_date.strftime('%d %b %Y') if booking.booking_date else 'N/A' }}</td>
+                                <td>
+                                    <span class="badge bg-success">{{ booking.status }}</span>
+                                </td>
+                                <td class="pe-4">
+                                    <a href="{{ url_for('view_booking', id=booking.id) }}" class="btn btn-outline-secondary btn-sm px-3 fw-bold">View Details</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">No past tracking history available.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
