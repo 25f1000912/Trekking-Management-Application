@@ -62,6 +62,9 @@
                         <th class="ps-4 py-3">Trek Name</th>
                         <th>Location</th>
                         <th>Participants</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Duration (Days)</th>
                         <th>Slots</th>
                         <th>Status</th>
                         <th class="pe-4">Actions</th>
@@ -85,6 +88,9 @@
                                 </button>
                             {% endif %}
                         </td>
+                        <td>{{ trek.start_date.strftime('%Y-%m-%d') if trek.start_date else 'N/A' }}</td>
+                        <td>{{ trek.end_date.strftime('%Y-%m-%d') if trek.end_date else 'N/A' }}</td>
+                        <td>{{ trek.duration }} Days</td>
                         <td>{{ trek.available_slots }}</td>
                         <td>{{ trek.status }}</td>
                         <td class="pe-4">

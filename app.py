@@ -153,15 +153,29 @@ def add_trek():
 
         staff_id = int(staff_id) if staff_id else None
 
-        # Extract data from the form
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+
+        # Calculate duration
+        calculated_duration = (end_date - start_date).days
+
+        if calculated_duration <= 0:
+            flash('End date must be strictly after the start date.', 'danger')
+            return redirect(url_for('manage_treks'))
+
         new_trek = Trek(
             name=request.form.get('name'),
             location=request.form.get('location'),
             difficulty=request.form.get('difficulty'),
-            duration=request.form.get('duration'),
+            start_date=start_date,
+            end_date=end_date,
+            duration=calculated_duration,  # Calculated automatically
             available_slots=request.form.get('slots'),
-            status=request.form.get('status'),
-            staff_id=staff_id
+            staff_id=request.form.get('staff_id'),
+            status='Open'
         )
         
         # Save to database
@@ -184,10 +198,24 @@ def edit_trek(id):
     
     if request.method == 'POST':
 
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+
+        calculated_duration = (end_date - start_date).days
+
+        if calculated_duration <= 0:
+            flash('End date must be strictly after the start date.', 'danger')
+            return redirect(url_for('manage_treks'))
+
         trek.name = request.form.get('name')
         trek.location = request.form.get('location')
         trek.difficulty = request.form.get('difficulty')
-        trek.duration = request.form.get('duration')
+        trek.start_date = start_date
+        trek.end_date = end_date
+        trek.duration = calculated_duration # Calculated automatically
         trek.available_slots = request.form.get('slots')
         trek.status = request.form.get('status')
         staff_id = request.form.get('staff_id')

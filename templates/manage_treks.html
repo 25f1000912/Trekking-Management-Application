@@ -15,7 +15,9 @@
                     <th>Trek Name</th>
                     <th>Location</th>
                     <th>Difficulty</th>
-                    <th>Duration</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Duration (Days)</th>
                     <th>Slots</th>
                     <th>Status</th>
                     <th>Assigned Staff</th>
@@ -29,6 +31,8 @@
                     <td>{{ trek.name }}</td>
                     <td>{{ trek.location }}</td>
                     <td>{{ trek.difficulty }}</td>
+                    <td>{{ trek.start_date.strftime('%Y-%m-%d') if trek.start_date else 'N/A' }}</td>
+                    <td>{{ trek.end_date.strftime('%Y-%m-%d') if trek.end_date else 'N/A' }}</td>
                     <td>{{ trek.duration }}</td> <!-- Added Data -->
                     <td>{{ trek.available_slots }}</td>
                     <td>{{ trek.status }}</td>

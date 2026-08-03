@@ -36,6 +36,8 @@
                         <tr>
                             <th class="ps-4 py-3">Trek Name</th>
                             <th>Location</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
                             <th>Difficulty</th>
                             <th>Duration</th>
                             <th>Available Slots</th>
@@ -47,6 +49,8 @@
                         <tr>
                             <td class="ps-4 fw-medium">{{ trek.name }}</td>
                             <td>{{ trek.location }}</td>
+                            <td>{{ trek.start_date.strftime('%d %b %Y') if trek.start_date else 'N/A' }}</td>
+                            <td>{{ trek.end_date.strftime('%d %b %Y') if trek.end_date else 'N/A' }}</td>
                             <td>{{ trek.difficulty }}</td>
                             <td>{{ trek.duration }} Days</td>
                             <td>{{ trek.available_slots }}</td>
@@ -90,6 +94,8 @@
                             <tr>
                                 <th class="ps-4 py-3">Trek Name</th>
                                 <th>Booking Date</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
                                 <th>Status</th>
                                 <th class="pe-4">Action</th>
                             </tr>
@@ -99,6 +105,8 @@
                             <tr>
                                 <td class="ps-4 fw-medium">{{ booking.trek.name }}</td>
                                 <td>{{ booking.booking_date.strftime('%d %b %Y') if booking.booking_date else 'N/A' }}</td>
+                                <td>{{ booking.trek.start_date.strftime('%d %b %Y') if booking.trek.start_date else 'N/A' }}</td>
+                                <td>{{ booking.trek.end_date.strftime('%d %b %Y') if booking.trek.end_date else 'N/A' }}</td>
                                 <td><span class="badge bg-primary">{{ booking.status }}</span></td>
                                 <td class="pe-4">
                                     <a href="{{ url_for('view_booking', id=booking.id) }}" class="btn btn-outline-primary btn-sm px-3 fw-bold">View Details</a>

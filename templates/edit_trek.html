@@ -24,8 +24,12 @@
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Duration (Days)</label>
-                        <input value="{{ trek.duration }}" type="number" name="duration" class="form-control" required>
+                        <label for="edit_start_date_{{ trek.id }}" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="edit_start_date_{{ trek.id }}" name="start_date" value="{{ trek.start_date.strftime('%Y-%m-%d') if trek.start_date else '' }}" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="edit_end_date_{{ trek.id }}" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="edit_end_date_{{ trek.id }}" name="end_date" value="{{ trek.end_date.strftime('%Y-%m-%d') if trek.end_date else '' }}" required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Available Slots</label>
