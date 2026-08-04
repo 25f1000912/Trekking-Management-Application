@@ -51,20 +51,39 @@
                             <button type="submit" class="btn btn-success px-4">Save Changes</button>
                         </div>
                     </form>
-                    <!-- Danger Zone: Mark as Completed -->
-                    <div class="mt-5 border border-danger rounded p-4 bg-light">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="text-danger fw-bold mb-1">End Trek</h5>
-                                <p class="text-muted mb-0">Marking this trek as completed will permanently close registrations and remove it from active listings.</p>
+                    <!-- Trek Status Management -->
+                    {% if trek.status == 'Open' %}
+                        <!-- Danger Zone: Mark as Completed -->
+                        <div class="mt-5 border border-danger rounded p-4 bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="text-danger fw-bold mb-1">End Trek</h5>
+                                    <p class="text-muted mb-0">Marking this trek as completed will permanently close registrations and remove it from active listings.</p>
+                                </div>
+                                
+                                <form action="{{ url_for('complete_trek', id=trek.id) }}" method="POST" onsubmit="return confirm('Are you sure? This action cannot be undone and will prevent any new bookings.');">
+                                    <button type="submit" class="btn btn-danger fw-bold px-4">Mark as Completed</button>
+                                </form>
                             </div>
-                            
-                            <!-- Separate form for the completion action -->
-                            <form action="{{ url_for('complete_trek', id=trek.id) }}" method="POST" onsubmit="return confirm('Are you sure? This action cannot be undone and will prevent any new bookings.');">
-                                <button type="submit" class="btn btn-danger fw-bold px-4">Mark as Completed</button>
-                            </form>
                         </div>
-                    </div>
+                        
+                    {% elif trek.status == 'Completed' %}
+                        <!-- Success Zone: Trek Completed / Reopen -->
+                        <div class="mt-5 border border-success rounded p-4 bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="text-success fw-bold mb-1">
+                                        ✓ Trek Marked as Completed
+                                    </h5>
+                                    <p class="text-muted mb-0">Registrations are currently closed. You can reopen this trek to allow new bookings.</p>
+                                </div>
+                                
+                                <form action="{{ url_for('reopen_trek', id=trek.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to reopen this trek for new registrations?');">
+                                    <button type="submit" class="btn btn-outline-success fw-bold px-4">Reopen Trek</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

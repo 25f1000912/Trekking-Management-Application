@@ -55,7 +55,11 @@
                             <td>{{ trek.duration }} Days</td>
                             <td>{{ trek.available_slots }}</td>
                             <td class="pe-4">
-                                <a href="{{ url_for('book_trek', trek_id=trek.id) }}" class="btn btn-primary btn-sm px-3 fw-bold shadow-sm">Book Now</a>
+                                {% if trek.id in booked_trek_ids %}
+                                    <button class="btn btn-secondary btn-sm px-3 fw-bold shadow-sm" disabled>Booked</button>
+                                {% else %}
+                                    <a href="{{ url_for('book_trek', trek_id=trek.id) }}" class="btn btn-primary btn-sm px-3 fw-bold shadow-sm">Book Now</a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% else %}

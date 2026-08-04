@@ -1,3 +1,4 @@
+import os
 from functools import wraps
 from datetime import datetime
 from create_db import init_db
@@ -8,7 +9,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'your_super_secret_key' 
+app.secret_key = os.urandom(24) 
 
 db.init_app(app)
 
@@ -411,8 +412,29 @@ def complete_trek(id):
             
     db.session.commit()
     
-    flash(f'Trek "{trek.name}" and its associated bookings have been marked as Completed.', 'success')
-    return redirect(url_for('staff_dashboard'))
+    # Inside complete_trek(id):
+    flash(f'Trek "{trek.name}" has been marked as Completed. No new registrations are allowed.', 'success')
+    return redirect(url_for('manage_assigned_trek', id=trek.id))
+
+@app.route('/reopen_trek/<int:id>', methods=['POST'])
+@login_required
+def reopen_trek(id):
+    if session.get('role') != 'Staff':
+        return redirect(url_for('login'))
+        
+    trek = Trek.query.get_or_404(id)
+    
+    if trek.staff_id != session.get('user_id'):
+        flash('You do not have permission to modify this trek.', 'danger')
+        return redirect(url_for('staff_dashboard'))
+        
+    # Revert status to Open
+    trek.status = 'Open'
+    db.session.commit()
+    
+    flash(f'Trek "{trek.name}" has been reopened. New registrations are now allowed.', 'success')
+    # Redirect back to the same manage page
+    return redirect(url_for('manage_assigned_trek', id=trek.id))
 
 
 @app.route('/user')
@@ -451,6 +473,9 @@ def user_dashboard():
     upcoming_bookings = [b for b in all_user_bookings if b.status in ['Booked', 'Confirmed', 'Pending']]
     past_bookings = [b for b in all_user_bookings if b.status in ['Completed', 'Cancelled']]
 
+    # Generate a list of Trek IDs the user has actively booked
+    booked_trek_ids = [b.trek_id for b in all_user_bookings if b.status != 'Cancelled']
+
     return render_template(
         'user_dashboard.html',
         available_treks=available_treks,
@@ -458,7 +483,8 @@ def user_dashboard():
         past_bookings=past_bookings,
         unique_locations=unique_locations,
         selected_difficulty=selected_difficulty,
-        selected_location=selected_location
+        selected_location=selected_location,
+        booked_trek_ids=booked_trek_ids
     )
 
 @app.route('/book_trek/<int:trek_id>', methods=['GET', 'POST'])
