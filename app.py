@@ -428,12 +428,17 @@ def reopen_trek(id):
         flash('You do not have permission to modify this trek.', 'danger')
         return redirect(url_for('staff_dashboard'))
         
-    # Revert status to Open
+    # Revert Trek status to Open
     trek.status = 'Open'
+    
+    # Revert associated 'Completed' bookings back to 'Booked'
+    bookings_to_update = Booking.query.filter_by(trek_id=trek.id, status='Completed').all()
+    for booking in bookings_to_update:
+        booking.status = 'Booked'
+        
     db.session.commit()
     
-    flash(f'Trek "{trek.name}" has been reopened. New registrations are now allowed.', 'success')
-    # Redirect back to the same manage page
+    flash(f'Trek "{trek.name}" has been reopened and participant bookings have been restored to Upcoming.', 'success')
     return redirect(url_for('manage_assigned_trek', id=trek.id))
 
 
@@ -469,9 +474,23 @@ def user_dashboard():
     # Assumes your Booking model has a backref to Trek (e.g., booking.trek.name)
     all_user_bookings = Booking.query.filter_by(user_id=session.get('user_id')).order_by(Booking.booking_date.desc()).all()
     
-    # Split into Upcoming (Booked) and Past (Completed/Cancelled)
+    # 1. Get the active upcoming bookings
     upcoming_bookings = [b for b in all_user_bookings if b.status in ['Booked', 'Confirmed', 'Pending']]
-    past_bookings = [b for b in all_user_bookings if b.status in ['Completed', 'Cancelled']]
+    
+    # 2. Extract just the Trek IDs for those active bookings
+    upcoming_trek_ids = [b.trek_id for b in upcoming_bookings]
+
+    # 3. Build unique past bookings (latest only per trek)
+    past_bookings = []
+    seen_past_trek_ids = set() # Keeps track of treks we've already added
+
+    for b in all_user_bookings:
+        # Check if it's a past status AND not currently in upcoming
+        if b.status in ['Completed', 'Cancelled'] and b.trek_id not in upcoming_trek_ids:
+            # Only add it if we haven't processed this specific trek yet
+            if b.trek_id not in seen_past_trek_ids:
+                past_bookings.append(b)
+                seen_past_trek_ids.add(b.trek_id)
 
     # Generate a list of Trek IDs the user has actively booked
     booked_trek_ids = [b.trek_id for b in all_user_bookings if b.status != 'Cancelled']
@@ -508,9 +527,10 @@ def book_trek(trek_id):
         return redirect(url_for('user_dashboard'))
 
     # 3. Check for duplicate bookings by this user
-    existing_booking = Booking.query.filter_by(
-        user_id=session.get('user_id'), 
-        trek_id=trek.id
+    existing_booking = Booking.query.filter(
+        Booking.user_id == session.get('user_id'),
+        Booking.trek_id == trek.id,
+        Booking.status.in_(['Booked', 'Confirmed', 'Pending'])
     ).first()
     
     if existing_booking:
@@ -545,6 +565,41 @@ def book_trek(trek_id):
 
     # If GET request, show confirmation page
     return render_template('confirm_booking.html', trek=trek)
+
+@app.route('/cancel_booking/<int:id>', methods=['POST'])
+@login_required
+def cancel_booking(id):
+    # Ensure only the User role can perform this action
+    if session.get('role') != 'User':
+        return redirect(url_for('login'))
+        
+    booking = Booking.query.get_or_404(id)
+    
+    # Security: Ensure the logged-in user actually owns this booking
+    if booking.user_id != session.get('user_id'):
+        flash('Unauthorized action.', 'danger')
+        return redirect(url_for('user_dashboard'))
+        
+    # Prevent cancelling bookings that are already completed or cancelled
+    if booking.status in ['Completed', 'Cancelled']:
+        flash('This booking cannot be modified.', 'warning')
+        return redirect(url_for('user_dashboard'))
+        
+    try:
+        # Update the booking status
+        booking.status = 'Cancelled'
+        
+        # Free up the slot in the Trek table
+        booking.trek.available_slots += 1
+        
+        db.session.commit()
+        flash(f'Your booking for {booking.trek.name} has been cancelled.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('An error occurred while cancelling your booking.', 'danger')
+        
+    return redirect(url_for('user_dashboard'))
 
 @app.route('/view_booking/<int:id>')
 @login_required

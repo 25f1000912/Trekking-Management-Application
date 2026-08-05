@@ -16,8 +16,16 @@
                 {{ booking.booking_date.strftime('%d %b %Y') if booking.booking_date else 'N/A' }}
             </p>
             
-            <div class="mt-4">
-                <a href="{{ url_for('user_dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+            <div class="mt-4 d-flex justify-content-between align-items-center">
+                <!-- Back Button -->
+                <a href="{{ url_for('user_dashboard') }}" class="btn btn-secondary px-4">Back to Dashboard</a>
+                
+                <!-- Cancel Button Form (Only show if active) -->
+                {% if booking.status in ['Booked', 'Confirmed', 'Pending'] %}
+                <form action="{{ url_for('cancel_booking', id=booking.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to cancel your booking for {{ booking.trek.name }}?');">
+                    <button type="submit" class="btn btn-danger fw-bold px-4">Cancel Trek</button>
+                </form>
+                {% endif %}
             </div>
         </div>
     </div>
