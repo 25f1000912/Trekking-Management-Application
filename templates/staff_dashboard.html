@@ -130,6 +130,7 @@
                             {% for booking in trek.participants %}
                             <tr>
                                 <td class="ps-3">{{ booking.user.id }}</td>
+                                <!-- Corrected to match your database column name: full_name -->
                                 <td>{{ booking.user.full_name }}</td>
                                 <td>{{ booking.user.email }}</td>
                                 <td class="pe-3">

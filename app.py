@@ -1,4 +1,5 @@
 import os
+from flask import request
 from functools import wraps
 from datetime import datetime
 from create_db import init_db
@@ -135,9 +136,18 @@ def admin():
 def manage_treks():
     if session.get('role') != 'Admin':
         return redirect(url_for('login'))
+
+    search_id = request.args.get('search_id', '').strip()
+    search_name = request.args.get('search_name', '').strip()
+    
+    query = Trek.query
+    if search_id:
+        query = query.filter(Trek.id == search_id)
+    if search_name:
+        query = query.filter(Trek.name.ilike(f'%{search_name}%'))
         
-    all_treks = Trek.query.all()
-    return render_template('manage_treks.html', treks=all_treks)
+    all_treks = query.all()
+    return render_template('manage_treks.html', treks=all_treks, search_id=search_id, search_name=search_name)
 
 
 @app.route('/admin/treks/add', methods=['GET', 'POST'])
@@ -251,10 +261,19 @@ def manage_staff():
     if session.get('role') != 'Admin':
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
+
+    search_id = request.args.get('search_id', '').strip()
+    search_name = request.args.get('search_name', '').strip()
+    
+    query = User.query.filter_by(role='Staff')
+    if search_id:
+        query = query.filter(User.id == search_id)
+    if search_name:
+        query = query.filter(User.full_name.ilike(f'%{search_name}%'))
         
     # Fetch all users who registered as Staff
-    staff_members = User.query.filter_by(role='Staff').all()
-    return render_template('manage_staff.html', staff_members=staff_members)
+    staff_members = query.filter_by(role='Staff').all()
+    return render_template('manage_staff.html', staff_members=staff_members, search_id=search_id, search_name=search_name)
 
 @app.route('/update_staff_status/<int:id>/<string:action>')
 @login_required
@@ -286,20 +305,29 @@ def manage_users():
     if session.get('role') != 'Admin':
         flash('Unauthorized access.', 'danger')
         return redirect(url_for('login'))
+
+    search_id = request.args.get('search_id', '').strip()
+    search_name = request.args.get('search_name', '').strip()
+    
+    query = User.query.filter_by(role='User')
+    if search_id:
+        query = query.filter(User.id == search_id)
+    if search_name:
+        query = query.filter(User.full_name.ilike(f'%{search_name}%'))
         
     # Fetch all registered Users
-    users = User.query.filter_by(role='User').all()
+    users = query.filter_by(role='User').all()
     
     # Calculate active bookings for each user
     for user in users:
         # Adjust 'Confirmed' or 'Pending' based on your exact Booking model statuses
         active_count = Booking.query.filter(
             Booking.user_id == user.id,
-            Booking.status.in_(['Confirmed', 'Pending', 'Active']) 
+            Booking.status.in_(['Booked', 'Pending', 'Active']) 
         ).count()
         user.active_bookings_count = active_count
 
-    return render_template('manage_users.html', users=users)
+    return render_template('manage_users.html', users=users, search_id=search_id, search_name=search_name)
 
 @app.route('/update_user_status/<int:id>/<string:action>')
 @login_required
@@ -347,13 +375,12 @@ def staff_dashboard():
     
     total_participants = 0
     for trek in assigned_treks:
-        # Fetch actual booking objects
         participants = Booking.query.filter(
             Booking.trek_id == trek.id, 
-            Booking.status.in_(['Confirmed', 'Pending', 'Active'])
+            Booking.status.in_(['Booked', 'Confirmed', 'Pending'])
         ).all()
         
-        trek.participants = participants # Store list of bookings in the trek object
+        trek.participants = participants 
         trek.participant_count = len(participants)
         total_participants += trek.participant_count
 
