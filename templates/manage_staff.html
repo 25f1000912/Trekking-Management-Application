@@ -22,7 +22,7 @@
                         <td>{{ staff.full_name }}</td>
                         <td>{{ staff.email }}</td>
                         <td>
-                            <!-- Updated Status Badges -->
+                            <!-- Status Badges -->
                             {% if staff.status == 'Active' or staff.status == 'Approved' %}
                                 <span class="badge bg-success">Active</span>
                             {% elif staff.status == 'Pending' %}
@@ -34,7 +34,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            <!-- Updated Actions Logic -->
+                            <!-- Actions Logic -->
                             {% if staff.status == 'Pending' %}
                                 <a href="{{ url_for('update_staff_status', id=staff.id, action='approve') }}" class="btn btn-sm btn-success">Approve</a>
                                 <a href="{{ url_for('update_staff_status', id=staff.id, action='reject') }}" class="btn btn-sm btn-danger">Reject</a>

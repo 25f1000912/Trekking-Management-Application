@@ -23,14 +23,12 @@
                         <td>{{ user.full_name }}</td>
                         <td>{{ user.email }}</td>
                         <td>
-                            <!-- Displays the dynamically calculated booking count -->
                             <span class="badge bg-primary rounded-pill">{{ user.active_bookings_count }}</span>
                         </td>
                         <td>
                             {% if user.status == 'Blacklisted' %}
                                 <span class="badge bg-dark">Blacklisted</span>
                             {% else %}
-                                <!-- Defaults to Active if not blacklisted -->
                                 <span class="badge bg-success">Active</span>
                             {% endif %}
                         </td>

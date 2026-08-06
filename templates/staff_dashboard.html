@@ -77,12 +77,10 @@
                         <td>{{ trek.location }}</td>
                         <td>
                             {% if trek.participant_count > 0 %}
-                                <!-- Button triggers the modal -->
                                 <button type="button" class="btn btn-sm btn-info text-white rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#participantsModal{{ trek.id }}">
                                     {{ trek.participant_count }} Participants
                                 </button>
                             {% else %}
-                                <!-- Triggers a browser alert if count is 0 -->
                                 <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" onclick="alert('No one has registered for this trek yet.')">
                                     0 Participants
                                 </button>

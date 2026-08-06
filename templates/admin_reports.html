@@ -24,9 +24,7 @@
                         {% for booking in bookings %}
                         <tr>
                             <td class="ps-4 fw-bold">#{{ booking.id }}</td>
-                            <!-- Assumes Booking model has a relationship to User -->
                             <td>{{ booking.user.full_name }}</td>
-                            <!-- Assumes Booking model has a relationship to Trek -->
                             <td>{{ booking.trek.name }}</td>
                             <td>
                                 {{ booking.booking_date.strftime('%d %b %Y, %H:%M') if booking.booking_date else 'N/A' }}

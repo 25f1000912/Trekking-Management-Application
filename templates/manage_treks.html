@@ -33,7 +33,7 @@
                     <td>{{ trek.difficulty }}</td>
                     <td>{{ trek.start_date.strftime('%Y-%m-%d') if trek.start_date else 'N/A' }}</td>
                     <td>{{ trek.end_date.strftime('%Y-%m-%d') if trek.end_date else 'N/A' }}</td>
-                    <td>{{ trek.duration }}</td> <!-- Added Data -->
+                    <td>{{ trek.duration }}</td>
                     <td>{{ trek.available_slots }}</td>
                     <td>{{ trek.status }}</td>
                     <td>
@@ -53,7 +53,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="8" class="text-center">No treks found. Create one above!</td> <!-- Updated colspan to 8 -->
+                    <td colspan="8" class="text-center">No treks found. Create one above!</td>
                 </tr>
                 {% endfor %}
             </tbody>
